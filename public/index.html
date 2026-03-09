@@ -3,57 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PoriChat Pro🧚‍♀️</title>
+    <title>PoriChat Pro+🧚‍♀️</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="/socket.io/socket.io.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
-        body { background: #0b0b0e; color: #fff; }
-        .gradient-btn { background: linear-gradient(90deg, #8b5cf6, #d946ef); }
-        .chat-area { height: 65vh; overflow-y: auto; }
-        .emoji-picker { display: none; background: #1f2937; border-radius: 10px; padding: 10px; position: absolute; bottom: 80px; left: 20px; z-index: 100; }
-        .emoji-picker span { cursor: pointer; font-size: 20px; padding: 5px; }
+        body { background: #050505; color: #fff; font-family: 'Poppins', sans-serif; }
+        .glass { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .gradient-text { background: linear-gradient(90deg, #a855f7, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .chat-area { height: 60vh; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #333 transparent; }
+        .bubble { border-radius: 18px; padding: 10px 16px; max-width: 85%; position: relative; font-size: 15px; }
+        .bubble-me { background: linear-gradient(135deg, #7c3aed, #db2777); margin-left: auto; border-bottom-right-radius: 2px; }
+        .bubble-them { background: #262626; margin-right: auto; border-bottom-left-radius: 2px; }
+        .emoji-box { display: none; bottom: 85px; left: 20px; z-index: 100; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-msg { animation: fadeIn 0.3s ease-out; }
     </style>
 </head>
-<body class="flex flex-col items-center justify-center min-h-screen p-2">
+<body class="flex flex-col items-center justify-center min-h-screen p-4">
+
+    <!-- Header Stats -->
+    <div class="fixed top-4 flex gap-4 text-xs font-bold uppercase tracking-widest text-gray-400">
+        <div class="flex items-center gap-1"><span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> <span id="onlineCount">0</span> Online Poris</div>
+    </div>
 
     <!-- Landing Screen -->
-    <div id="landing" class="text-center w-full max-w-md">
-        <h1 class="text-5xl font-bold mb-6">Pori<span class="text-purple-500">Chat</span></h1>
-        <button onclick="startChat()" class="gradient-btn w-full py-4 rounded-2xl font-bold text-xl">Start Chatting</button>
+    <div id="landing" class="text-center w-full max-w-lg space-y-6">
+        <h1 class="text-6xl font-extrabold gradient-text italic">PoriChat</h1>
+        <p class="text-gray-400">Anonymous 1v1 Chat. Vanish Like a Spirit.</p>
+        <div class="p-6 glass rounded-3xl space-y-4">
+            <button onclick="startChat()" class="w-full bg-white text-black py-4 rounded-2xl font-bold text-xl hover:bg-gray-200 transition">Start Chatting</button>
+            <p class="text-[10px] text-gray-500">By clicking, you agree to be a decent human being 🧚‍♀️</p>
+        </div>
     </div>
 
     <!-- Chat Screen -->
-    <div id="chat-container" class="hidden w-full max-w-2xl bg-gray-900 rounded-3xl p-4 shadow-2xl relative">
-        <div class="flex justify-between items-center mb-4 border-b border-gray-800 pb-2">
-            <span class="text-green-400 font-bold">● Connected</span>
-            <div class="flex gap-2">
-                <button onclick="reportPartner()" class="bg-yellow-600/20 text-yellow-500 px-3 py-1 rounded-full text-xs">Report</button>
-                <button onclick="location.reload()" class="bg-red-500 text-white px-4 py-1 rounded-full text-xs">Exit</button>
+    <div id="chat-container" class="hidden w-full max-w-2xl flex flex-col space-y-4">
+        <div class="glass p-4 rounded-3xl flex justify-between items-center">
+            <div class="flex flex-col">
+                <span id="statusText" class="text-sm font-semibold text-purple-400 italic">Searching...</span>
+                <span id="typingText" class="text-[10px] text-pink-400 h-3"></span>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="location.reload()" class="text-xs bg-red-500/20 text-red-500 px-4 py-2 rounded-full font-bold">New Pori</button>
             </div>
         </div>
 
-        <div id="messages" class="chat-area space-y-4 p-2"></div>
+        <div id="messages" class="chat-area space-y-4 px-2"></div>
 
-        <!-- Emoji Picker -->
-        <div id="emojiPicker" class="emoji-picker grid grid-cols-6 border border-gray-700">
-            <span onclick="addEmoji('😊')">😊</span><span onclick="addEmoji('😂')">😂</span><span onclick="addEmoji('❤️')">❤️</span>
-            <span onclick="addEmoji('🔥')">🔥</span><span onclick="addEmoji('😘')">😘</span><span onclick="addEmoji('😮')">😮</span>
-            <span onclick="addEmoji('😭')">😭</span><span onclick="addEmoji('👍')">👍</span><span onclick="addEmoji('🧚‍♀️')">🧚‍♀️</span>
-        </div>
-
-        <div class="mt-4 flex flex-wrap gap-2 items-center bg-gray-800 p-2 rounded-2xl">
-            <button onclick="toggleEmoji()" class="text-2xl">😊</button>
-            <label class="cursor-pointer text-2xl">
-                📷 <input type="file" id="imgInput" class="hidden" accept="image/*" onchange="uploadImage(this)">
-            </label>
-            <input id="msgInput" type="text" class="flex-1 bg-transparent p-2 outline-none" placeholder="Type a message...">
-            <button onclick="sendMessage()" class="gradient-btn px-6 py-2 rounded-xl font-bold">Send</button>
+        <div class="relative glass p-2 rounded-3xl flex items-center gap-2">
+            <div id="emojiBox" class="emoji-box absolute glass p-3 rounded-2xl grid grid-cols-5 gap-2 border border-purple-500/30">
+                <span onclick="addEmoji('😊')" class="cursor-pointer">😊</span><span onclick="addEmoji('😂')" class="cursor-pointer">😂</span>
+                <span onclick="addEmoji('❤️')" class="cursor-pointer">❤️</span><span onclick="addEmoji('🔥')" class="cursor-pointer">🔥</span>
+                <span onclick="addEmoji('😭')" class="cursor-pointer">😭</span><span onclick="addEmoji('😘')" class="cursor-pointer">😘</span>
+            </div>
+            
+            <button onclick="toggleEmoji()" class="p-2 text-xl hover:scale-110 transition">😊</button>
+            <label class="p-2 text-xl cursor-pointer hover:scale-110 transition">📷<input type="file" id="imgInput" class="hidden" accept="image/*" onchange="uploadImage(this)"></label>
+            
+            <input id="msgInput" type="text" class="flex-1 bg-transparent p-3 outline-none text-sm" placeholder="Type a message..." oninput="emitTyping()">
+            <button onclick="sendMessage()" class="bg-white text-black px-6 py-3 rounded-2xl font-bold text-sm hover:bg-purple-500 hover:text-white transition">Send</button>
         </div>
     </div>
 
     <script>
         const socket = io();
         let currentRoom = null;
+        let typingTimeout;
 
         function startChat() {
             document.getElementById('landing').classList.add('hidden');
@@ -61,15 +77,34 @@
             socket.emit('findPartner');
         }
 
-        socket.on('matched', (room) => {
+        socket.on('updateCount', count => document.getElementById('onlineCount').innerText = count);
+        socket.on('waiting', msg => document.getElementById('statusText').innerText = msg);
+
+        socket.on('matched', room => {
             currentRoom = room;
-            appendMessage("System", "You're matched! Have fun.");
+            document.getElementById('statusText').innerText = "Connected with a Pori ✅";
+            appendMessage("System", "You're now chatting anonymously. Be nice!");
         });
 
-        socket.on('receiveMessage', (data) => {
+        socket.on('receiveMessage', data => {
             if(data.type === 'text') appendMessage("Partner", data.content);
             if(data.type === 'image') appendImage("Partner", data.content);
         });
+
+        socket.on('partnerTyping', isTyping => {
+            document.getElementById('typingText').innerText = isTyping ? "Pori is typing..." : "";
+        });
+
+        socket.on('partnerDisconnected', () => {
+            appendMessage("System", "Partner disconnected. Finding a new one...");
+            setTimeout(() => location.reload(), 2000);
+        });
+
+        function emitTyping() {
+            socket.emit('typing', { room: currentRoom });
+            clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(() => socket.emit('stopTyping', { room: currentRoom }), 2000);
+        }
 
         function sendMessage() {
             const input = document.getElementById('msgInput');
@@ -77,7 +112,7 @@
                 socket.emit('newMessage', { room: currentRoom, message: input.value });
                 appendMessage("You", input.value);
                 input.value = '';
-                document.getElementById('emojiPicker').style.display = 'none';
+                socket.emit('stopTyping', { room: currentRoom });
             }
         }
 
@@ -85,41 +120,49 @@
             const file = input.files[0];
             if (file && currentRoom) {
                 const reader = new FileReader();
-                reader.onload = function(e) {
-                    const base64Img = e.target.result;
-                    socket.emit('sendImage', { room: currentRoom, image: base64Img });
-                    appendImage("You", base64Img);
+                reader.onload = e => {
+                    socket.emit('sendImage', { room: currentRoom, image: e.target.result });
+                    appendImage("You", e.target.result);
                 };
                 reader.readAsDataURL(file);
             }
         }
 
-        function reportPartner() {
-            if(confirm("Report this user?")) {
-                socket.emit('reportUser');
-                alert("Reported successfully.");
-            }
-        }
-
         function appendMessage(sender, msg) {
             const div = document.createElement('div');
-            div.className = `p-3 rounded-xl max-w-[80%] ${sender==='You'?'bg-purple-600 ml-auto':'bg-gray-800'}`;
-            div.innerHTML = `<p class="text-xs opacity-50">${sender}</p><p>${msg}</p>`;
+            const isMe = sender === "You";
+            const isSys = sender === "System";
+            div.className = `animate-msg flex flex-col ${isMe ? 'items-end' : 'items-start'} ${isSys ? 'items-center' : ''}`;
+            
+            if(isSys) {
+                div.innerHTML = `<span class="text-[10px] bg-gray-800 px-3 py-1 rounded-full text-gray-400">${msg}</span>`;
+            } else {
+                div.innerHTML = `
+                    <span class="text-[10px] text-gray-500 mb-1 px-2">${sender}</span>
+                    <div class="bubble ${isMe ? 'bubble-me' : 'bubble-them'} shadow-lg">${msg}</div>
+                `;
+            }
             document.getElementById('messages').appendChild(div);
             scrollDown();
         }
 
         function appendImage(sender, src) {
             const div = document.createElement('div');
-            div.className = `p-2 rounded-xl max-w-[80%] ${sender==='You'?'bg-purple-600 ml-auto':'bg-gray-800'}`;
-            div.innerHTML = `<p class="text-xs opacity-50">${sender}</p><img src="${src}" class="rounded-lg mt-1 w-full max-h-60 object-cover">`;
+            const isMe = sender === "You";
+            div.className = `animate-msg flex flex-col ${isMe ? 'items-end' : 'items-start'}`;
+            div.innerHTML = `
+                <span class="text-[10px] text-gray-500 mb-1 px-2">${sender}</span>
+                <div class="glass p-1 rounded-2xl shadow-lg">
+                    <img src="${src}" class="rounded-xl max-h-60 w-auto object-cover border border-white/10">
+                </div>
+            `;
             document.getElementById('messages').appendChild(div);
             scrollDown();
         }
 
         function toggleEmoji() {
-            const p = document.getElementById('emojiPicker');
-            p.style.display = p.style.display === 'block' ? 'none' : 'block';
+            const e = document.getElementById('emojiBox');
+            e.style.display = e.style.display === 'block' ? 'none' : 'block';
         }
 
         function addEmoji(emoji) {
@@ -131,8 +174,7 @@
             chat.scrollTop = chat.scrollHeight;
         }
 
-        socket.on('systemMsg', msg => appendMessage("System", msg));
-        socket.on('banned', msg => { alert(msg); location.reload(); });
+        document.getElementById('msgInput').addEventListener("keypress", e => { if(e.key === "Enter") sendMessage(); });
     </script>
 </body>
 </html>
